@@ -13,14 +13,11 @@ import {
 } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  useGetDashboardStats,
-  useListEmployees,
-} from "@workspace/api-client-react";
 import { StatCard } from "@/components/ui/StatCard";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { useGetDashboardStats, useListEmployees } from "@/lib/employees";
 
 export default function DashboardScreen() {
   const C = Colors.light;
@@ -32,7 +29,8 @@ export default function DashboardScreen() {
   const employeesQuery = useListEmployees();
 
   const stats = statsQuery.data;
-  const recentEmployees = employeesQuery.data?.employees.slice(-3).reverse() ?? [];
+  const recentEmployees =
+    employeesQuery.data?.employees.slice(-3).reverse() ?? [];
 
   const isLoading = statsQuery.isLoading || employeesQuery.isLoading;
   const refetch = () => {
@@ -53,7 +51,11 @@ export default function DashboardScreen() {
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={!!isLoading} onRefresh={refetch} tintColor={C.primary} />
+        <RefreshControl
+          refreshing={!!isLoading}
+          onRefresh={refetch}
+          tintColor={C.primary}
+        />
       }
     >
       <LinearGradient
@@ -71,7 +73,9 @@ export default function DashboardScreen() {
         </View>
       </LinearGradient>
 
-      <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>Overview</Text>
+      <Text style={[styles.sectionTitle, { color: C.textSecondary }]}>
+        Overview
+      </Text>
 
       {isLoading && !stats ? (
         <View style={styles.loadingRow}>
@@ -106,9 +110,7 @@ export default function DashboardScreen() {
         />
         <StatCard
           label="Inactive"
-          value={
-            (stats?.totalEmployees ?? 0) - (stats?.activeEmployees ?? 0)
-          }
+          value={(stats?.totalEmployees ?? 0) - (stats?.activeEmployees ?? 0)}
           icon="user-x"
           color={C.error}
           bgColor={C.errorLight}
@@ -124,16 +126,29 @@ export default function DashboardScreen() {
             {recentEmployees.map((emp) => (
               <View
                 key={emp.id}
-                style={[styles.recentItem, { backgroundColor: C.backgroundSecondary }]}
+                style={[
+                  styles.recentItem,
+                  { backgroundColor: C.backgroundSecondary },
+                ]}
               >
-                <View style={[styles.recentAvatar, { backgroundColor: C.tintLight }]}>
+                <View
+                  style={[
+                    styles.recentAvatar,
+                    { backgroundColor: C.tintLight },
+                  ]}
+                >
                   <Text style={[styles.recentInitials, { color: C.primary }]}>
                     {emp.name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
                 <View style={styles.recentInfo}>
-                  <Text style={[styles.recentName, { color: C.text }]}>{emp.name}</Text>
-                  <Text style={[styles.recentEmail, { color: C.textSecondary }]} numberOfLines={1}>
+                  <Text style={[styles.recentName, { color: C.text }]}>
+                    {emp.name}
+                  </Text>
+                  <Text
+                    style={[styles.recentEmail, { color: C.textSecondary }]}
+                    numberOfLines={1}
+                  >
                     {emp.email}
                   </Text>
                 </View>

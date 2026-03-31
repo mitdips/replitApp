@@ -1,22 +1,19 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { EmployeeStatus } from "@/components/EmployeeStatus";
 import Colors from "@/constants/colors";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 
 type Employee = {
-  id: number;
+  id: string;
+  employeeID: string;
   name: string;
   email: string;
   phone?: string | null;
   role: string;
+  department: string;
   isActive: boolean;
 };
 
@@ -49,7 +46,11 @@ function getAvatarColor(name: string) {
   return AVATAR_COLORS[idx];
 }
 
-export function EmployeeCard({ employee, onPress, onDelete }: EmployeeCardProps) {
+export function EmployeeCard({
+  employee,
+  onPress,
+  onDelete,
+}: EmployeeCardProps) {
   const C = Colors.light;
   const initials = getInitials(employee.name);
   const avatarColor = getAvatarColor(employee.name);
@@ -71,7 +72,9 @@ export function EmployeeCard({ employee, onPress, onDelete }: EmployeeCardProps)
       ]}
     >
       <View style={[styles.avatar, { backgroundColor: avatarColor.bg }]}>
-        <Text style={[styles.initials, { color: avatarColor.text }]}>{initials}</Text>
+        <Text style={[styles.initials, { color: avatarColor.text }]}>
+          {initials}
+        </Text>
       </View>
 
       <View style={styles.info}>
@@ -79,15 +82,16 @@ export function EmployeeCard({ employee, onPress, onDelete }: EmployeeCardProps)
           <Text style={[styles.name, { color: C.text }]} numberOfLines={1}>
             {employee.name}
           </Text>
-          {!employee.isActive && (
-            <View style={[styles.inactiveBadge, { backgroundColor: C.backgroundTertiary }]}>
-              <Text style={[styles.inactiveText, { color: C.textMuted }]}>Inactive</Text>
-            </View>
-          )}
         </View>
-        <Text style={[styles.email, { color: C.textSecondary }]} numberOfLines={1}>
+        <Text
+          style={[styles.email, { color: C.textSecondary }]}
+          numberOfLines={1}
+        >
           {employee.email}
         </Text>
+        <View style={styles.statusRow}>
+          <EmployeeStatus isActive={employee.isActive} compact />
+        </View>
         <View style={styles.roleRow}>
           <RoleBadge role={employee.role} />
         </View>
@@ -148,17 +152,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
   },
+  meta: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+  },
   roleRow: {
     marginTop: 4,
   },
-  inactiveBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  inactiveText: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
+  statusRow: {
+    marginTop: 4,
+    alignSelf: "flex-start",
   },
   actions: {
     flexDirection: "row",

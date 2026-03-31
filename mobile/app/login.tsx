@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import {
   Alert,
@@ -11,17 +12,14 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { login as loginApi } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { auth } from "@/lib/firebase";
 
 export default function LoginScreen() {
   const C = Colors.light;
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -40,11 +38,11 @@ export default function LoginScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const data = await loginApi({ email: email.trim(), password });
-      await login(data.user, data.token);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace("/(app)/dashboard");
-    } catch {
-      Alert.alert("Login Failed", "Invalid email or password. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid email or password.";
+      Alert.alert("Login Failed", msg);
     } finally {
       setLoading(false);
     }

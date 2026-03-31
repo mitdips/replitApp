@@ -16,13 +16,24 @@ import {
   createEmployee,
   getListEmployeesQueryKey,
   getGetDashboardStatsQueryKey,
-} from "@workspace/api-client-react";
+} from "@/lib/employees";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SelectInput } from "@/components/ui/SelectInput";
 import Colors from "@/constants/colors";
 
 const ROLES = ["Admin", "Manager", "Developer", "Designer", "Analyst", "HR", "Other"];
+const DEPARTMENTS = [
+  "Software Development",
+  "IT Infrastructure",
+  "Cybersecurity",
+  "Data & Analytics",
+  "Quality Assurance (QA)",
+  "Project / Product Management",
+  "IT Support / Helpdesk",
+  "Database Management",
+];
 
 export default function AddEmployeeScreen() {
   const C = Colors.light;
@@ -32,6 +43,7 @@ export default function AddEmployeeScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -41,6 +53,7 @@ export default function AddEmployeeScreen() {
     if (!name.trim()) errs.name = "Name is required";
     if (!email.trim()) errs.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
+    if (!department.trim()) errs.department = "Department is required";
     if (!role) errs.role = "Please select a role";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -54,6 +67,7 @@ export default function AddEmployeeScreen() {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
+        department: department.trim(),
         role,
       });
       queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
@@ -118,6 +132,18 @@ export default function AddEmployeeScreen() {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
+          />
+          <SelectInput
+            label="Department"
+            icon="briefcase"
+            placeholder="Select department"
+            value={department}
+            onSelect={(value) => {
+              setDepartment(value);
+              setErrors((current) => ({ ...current, department: "" }));
+            }}
+            error={errors.department}
+            options={DEPARTMENTS}
           />
 
           <View style={styles.roleWrapper}>

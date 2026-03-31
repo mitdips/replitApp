@@ -1,86 +1,63 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import { router } from "expo-router";
+import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import React, {
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useState,
 } from "react";
-
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+import { auth } from "@/lib/firebase";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { clearEmployees } from "@/store/employeeSlice";
+import { clearAuth, setAuthLoading, setAuthUser } from "@/store/authSlice";
 
 type UserProfile = {
-  id: number;
+  id: string;
   name: string;
   email: string;
 };
 
 type AuthState = {
   user: UserProfile | null;
-  token: string | null;
   isLoading: boolean;
 };
 
 type AuthContextType = AuthState & {
-  login: (user: UserProfile, token: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const TOKEN_KEY = "@auth_token";
-const USER_KEY = "@auth_user";
+function mapUser(user: User): UserProfile {
+  return {
+    id: user.uid,
+    name: user.displayName?.trim() || user.email?.split("@")[0] || "User",
+    email: user.email || "",
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    token: null,
-    isLoading: true,
-  });
+  const dispatch = useAppDispatch();
+  const state = useAppSelector((root) => root.auth);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const [token, userStr] = await Promise.all([
-          AsyncStorage.getItem(TOKEN_KEY),
-          AsyncStorage.getItem(USER_KEY),
-        ]);
-        if (token && userStr) {
-          const user = JSON.parse(userStr) as UserProfile;
-          setState({ user, token, isLoading: false });
-          setAuthTokenGetter(() => token);
-        } else {
-          setState({ user: null, token: null, isLoading: false });
-        }
-      } catch {
-        setState({ user: null, token: null, isLoading: false });
-      }
-    })();
-  }, []);
+    dispatch(setAuthLoading(true));
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      dispatch(setAuthUser(firebaseUser ? mapUser(firebaseUser) : null));
+    });
 
-  const login = useCallback(async (user: UserProfile, token: string) => {
-    await Promise.all([
-      AsyncStorage.setItem(TOKEN_KEY, token),
-      AsyncStorage.setItem(USER_KEY, JSON.stringify(user)),
-    ]);
-    setAuthTokenGetter(() => token);
-    setState({ user, token, isLoading: false });
-  }, []);
+    return unsubscribe;
+  }, [dispatch]);
 
   const logout = useCallback(async () => {
-    await Promise.all([
-      AsyncStorage.removeItem(TOKEN_KEY),
-      AsyncStorage.removeItem(USER_KEY),
-    ]);
-    setAuthTokenGetter(() => null);
-    setState({ user: null, token: null, isLoading: false });
+    await signOut(auth);
+    dispatch(clearAuth());
+    dispatch(clearEmployees());
     router.replace("/");
-  }, []);
+  }, [dispatch]);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>
+    <AuthContext.Provider value={{ ...state, logout }}>
       {children}
     </AuthContext.Provider>
   );

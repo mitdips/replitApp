@@ -15,20 +15,41 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  useGetEmployee,
   updateEmployee,
   deleteEmployee,
   getListEmployeesQueryKey,
   getGetDashboardStatsQueryKey,
   getGetEmployeeQueryKey,
-} from "@workspace/api-client-react";
+  useGetEmployee,
+} from "@/lib/employees";
 import { useQueryClient } from "@tanstack/react-query";
+import { EmployeeStatus } from "@/components/EmployeeStatus";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { SelectInput } from "@/components/ui/SelectInput";
 import { RoleBadge } from "@/components/ui/RoleBadge";
 import Colors from "@/constants/colors";
 
-const ROLES = ["Admin", "Manager", "Developer", "Designer", "Analyst", "HR", "Other"];
+const ROLES = [
+  "Admin",
+  "Manager",
+  "Developer",
+  "Designer",
+  "Analyst",
+  "HR",
+  "Other",
+];
+const DEPARTMENTS = [
+  "Software Development",
+  "IT Infrastructure",
+  "Cybersecurity",
+  "Data & Analytics",
+  "Quality Assurance (QA)",
+  "Project / Product Management",
+  "IT Support / Helpdesk",
+  "Database Management",
+  "Mobile Applications",
+];
 
 export default function EmployeeDetailScreen() {
   const C = Colors.light;
@@ -36,13 +57,15 @@ export default function EmployeeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useGetEmployee(Number(id));
+  const employeeId = id ?? "";
+  const { data, isLoading } = useGetEmployee(employeeId);
   const employee = data?.employee;
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,6 +76,7 @@ export default function EmployeeDetailScreen() {
       setName(employee.name);
       setEmail(employee.email);
       setPhone(employee.phone ?? "");
+      setDepartment(employee.department ?? "");
       setRole(employee.role);
       setIsActive(employee.isActive);
     }
@@ -63,6 +87,7 @@ export default function EmployeeDetailScreen() {
     if (!name.trim()) errs.name = "Name is required";
     if (!email.trim()) errs.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Invalid email";
+    if (!department.trim()) errs.department = "Department is required";
     if (!role) errs.role = "Select a role";
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -72,16 +97,21 @@ export default function EmployeeDetailScreen() {
     if (!validate()) return;
     setSaving(true);
     try {
-      await updateEmployee(Number(id), {
+      await updateEmployee(employeeId, {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
+        department: department.trim(),
         role,
         isActive,
       });
       queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
-      queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(Number(id)) });
+      queryClient.invalidateQueries({
+        queryKey: getGetDashboardStatsQueryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getGetEmployeeQueryKey(employeeId),
+      });
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
@@ -101,11 +131,17 @@ export default function EmployeeDetailScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteEmployee(Number(id));
-            queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-            queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
+            await deleteEmployee(employeeId);
+            queryClient.invalidateQueries({
+              queryKey: getListEmployeesQueryKey(),
+            });
+            queryClient.invalidateQueries({
+              queryKey: getGetDashboardStatsQueryKey(),
+            });
             if (Platform.OS !== "web") {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             }
             router.back();
           } catch {
@@ -146,7 +182,11 @@ export default function EmployeeDetailScreen() {
           }}
           style={styles.editBtn}
         >
-          <Feather name={editing ? "x" : "edit-2"} size={20} color={C.primary} />
+          <Feather
+            name={editing ? "x" : "edit-2"}
+            size={20}
+            color={C.primary}
+          />
         </Pressable>
       </View>
 
@@ -160,8 +200,25 @@ export default function EmployeeDetailScreen() {
       >
         {!editing ? (
           <View style={styles.viewMode}>
-            <View style={[styles.profileHeader, { backgroundColor: C.backgroundSecondary }]}>
-              <View style={[styles.bigAvatar, { backgroundColor: C.tintLight }]}>
+            <View
+              style={[
+                styles.profileHeader,
+                {
+                  backgroundColor: C.backgroundSecondary,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.bigAvatar,
+                  {
+                    backgroundColor: C.tintLight,
+                    flexDirection: "row",
+                  },
+                ]}
+              >
                 <Text style={[styles.bigInitials, { color: C.primary }]}>
                   {employee.name
                     .split(" ")
@@ -171,49 +228,56 @@ export default function EmployeeDetailScreen() {
                     .slice(0, 2)}
                 </Text>
               </View>
-              <Text style={[styles.empName, { color: C.text }]}>{employee.name}</Text>
-              <Text style={[styles.empEmail, { color: C.textSecondary }]}>{employee.email}</Text>
-              <RoleBadge role={employee.role} />
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: employee.isActive ? C.successLight : C.backgroundTertiary,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: employee.isActive ? C.success : C.textMuted },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.statusText,
-                    { color: employee.isActive ? C.success : C.textMuted },
-                  ]}
-                >
-                  {employee.isActive ? "Active" : "Inactive"}
-                </Text>
+              <Text style={[styles.empName, { color: C.text }]}>
+                {employee.name}
+              </Text>
+              <Text style={[styles.empEmail, { color: C.textSecondary }]}>
+                {employee.email}
+              </Text>
+              <View style={[styles.roleRow]}>
+                <RoleBadge role={employee.role} />
+              </View>
+
+              <View style={styles.statusBadge}>
+                <EmployeeStatus isActive={employee.isActive} />
               </View>
             </View>
 
-            <View style={[styles.detailCard, { backgroundColor: C.backgroundSecondary }]}>
+            <View
+              style={[
+                styles.detailCard,
+                {
+                  backgroundColor: C.backgroundSecondary,
+                  borderWidth: 1,
+                  borderColor: C.border,
+                },
+              ]}
+            >
               {employee.phone ? (
                 <View style={styles.detailRow}>
                   <Feather name="phone" size={16} color={C.textMuted} />
-                  <Text style={[styles.detailText, { color: C.text }]}>{employee.phone}</Text>
+                  <Text style={[styles.detailText, { color: C.text }]}>
+                    {employee.phone}
+                  </Text>
                 </View>
               ) : null}
               <View style={styles.detailRow}>
+                <Feather name="briefcase" size={16} color={C.textMuted} />
+                <Text style={[styles.detailText, { color: C.text }]}>
+                  {employee.department || "No department"}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
                 <Feather name="calendar" size={16} color={C.textMuted} />
                 <Text style={[styles.detailText, { color: C.text }]}>
-                  Joined {new Date(employee.createdAt).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  Joined{" "}
+                  {employee.createdAt
+                    ? new Date(employee.createdAt).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "N/A"}
                 </Text>
               </View>
             </View>
@@ -253,13 +317,30 @@ export default function EmployeeDetailScreen() {
               onChangeText={setPhone}
               keyboardType="phone-pad"
             />
+            <SelectInput
+              label="Department"
+              icon="briefcase"
+              placeholder="Select department"
+              value={department}
+              onSelect={(value) => {
+                setDepartment(value);
+                setErrors((current) => ({ ...current, department: "" }));
+              }}
+              error={errors.department}
+              options={DEPARTMENTS}
+            />
 
             <View style={styles.roleWrapper}>
-              <Text style={[styles.roleLabel, { color: C.textSecondary }]}>Role</Text>
+              <Text style={[styles.roleLabel, { color: C.textSecondary }]}>
+                Role
+              </Text>
               <View style={styles.rolesGrid}>
                 {ROLES.map((r) => {
                   const selected = role === r;
-                  const ROLE_COLORS = C.roles as Record<string, { bg: string; text: string }>;
+                  const ROLE_COLORS = C.roles as Record<
+                    string,
+                    { bg: string; text: string }
+                  >;
                   const colors = ROLE_COLORS[r] ?? ROLE_COLORS["Other"];
                   return (
                     <Pressable
@@ -268,7 +349,9 @@ export default function EmployeeDetailScreen() {
                       style={[
                         styles.roleChip,
                         {
-                          backgroundColor: selected ? colors.bg : C.backgroundSecondary,
+                          backgroundColor: selected
+                            ? colors.bg
+                            : C.backgroundSecondary,
                           borderColor: selected ? colors.text : C.border,
                           borderWidth: selected ? 1.5 : 1,
                         },
@@ -289,12 +372,19 @@ export default function EmployeeDetailScreen() {
             </View>
 
             <View
-              style={[styles.switchRow, { backgroundColor: C.backgroundSecondary }]}
+              style={[
+                styles.switchRow,
+                { backgroundColor: C.backgroundSecondary },
+              ]}
             >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.switchLabel, { color: C.text }]}>Active</Text>
+                <Text style={[styles.switchLabel, { color: C.text }]}>
+                  Active
+                </Text>
                 <Text style={[styles.switchSub, { color: C.textSecondary }]}>
-                  {isActive ? "Employee is currently active" : "Employee is currently inactive"}
+                  {isActive
+                    ? "Employee is currently active"
+                    : "Employee is currently inactive"}
                 </Text>
               </View>
               <Switch
@@ -304,7 +394,11 @@ export default function EmployeeDetailScreen() {
               />
             </View>
 
-            <Button label="Save Changes" onPress={handleSave} loading={saving} />
+            <Button
+              label="Save Changes"
+              onPress={handleSave}
+              loading={saving}
+            />
           </View>
         )}
       </ScrollView>
@@ -378,23 +472,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
   },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+  empMeta: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
     marginTop: 4,
   },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 10,
-  },
-  statusText: {
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
+  statusBadge: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+    zIndex: 2,
   },
   detailCard: {
     borderRadius: 16,
@@ -450,5 +537,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
+  },
+  roleRow: {
+    marginTop: 4,
   },
 });

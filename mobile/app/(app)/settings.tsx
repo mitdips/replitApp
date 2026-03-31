@@ -39,22 +39,15 @@ function SettingRow({ icon, label, value, onPress, danger }: SettingRowProps) {
           { backgroundColor: danger ? C.errorLight : C.tintLight },
         ]}
       >
-        <Feather
-          name={icon}
-          size={16}
-          color={danger ? C.error : C.primary}
-        />
+        <Feather name={icon} size={16} color={danger ? C.error : C.primary} />
       </View>
-      <Text
-        style={[
-          styles.rowLabel,
-          { color: danger ? C.error : C.text },
-        ]}
-      >
+      <Text style={[styles.rowLabel, { color: danger ? C.error : C.text }]}>
         {label}
       </Text>
       {value ? (
-        <Text style={[styles.rowValue, { color: C.textSecondary }]}>{value}</Text>
+        <Text style={[styles.rowValue, { color: C.textSecondary }]}>
+          {value}
+        </Text>
       ) : null}
       {!danger && (
         <Feather name="chevron-right" size={16} color={C.textMuted} />
@@ -78,12 +71,13 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const initials = user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) ?? "?";
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ?? "?";
 
   return (
     <ScrollView

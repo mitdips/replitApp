@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from "react";
 import {
   Alert,
@@ -11,10 +12,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { forgotPassword as forgotPasswordApi } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Colors from "@/constants/colors";
+import { auth } from "@/lib/firebase";
 
 export default function ForgotPasswordScreen() {
   const C = Colors.light;
@@ -36,7 +37,7 @@ export default function ForgotPasswordScreen() {
     setError("");
     setLoading(true);
     try {
-      await forgotPasswordApi({ email: email.trim() });
+      await sendPasswordResetEmail(auth, email.trim());
       setSent(true);
     } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");

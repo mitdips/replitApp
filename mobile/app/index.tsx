@@ -28,7 +28,10 @@ export default function SplashIndexScreen() {
       colors={["#4F46E5", "#6366F1", "#818CF8"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
     >
       <View style={styles.content}>
         <View style={styles.iconContainer}>

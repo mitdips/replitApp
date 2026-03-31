@@ -6,9 +6,12 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Provider } from "react-redux";
+import { StatusBar } from "expo-status-bar";
+import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,6 +19,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { store } from "@/store";
+import { useAuth } from "@/context/AuthContext";
+import { setLastRoute } from "@/store/appSlice";
+import { useAppDispatch } from "@/store/hooks";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,21 +33,61 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const C = Colors.light;
+  const segments = useSegments();
+  const dispatch = useAppDispatch();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    const currentRoute = `/${segments.join("/")}`;
+    dispatch(setLastRoute(currentRoute === "/" ? "/" : currentRoute));
+
+    if (isLoading) {
+      return;
+    }
+
+    const firstSegment = segments[0];
+    const isProtectedRoute = firstSegment === "(app)";
+    const isAuthRoute =
+      firstSegment === "login" ||
+      firstSegment === "signup" ||
+      firstSegment === "forgot-password";
+    const isIndexRoute = !firstSegment;
+
+    if (!user && isProtectedRoute) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user && (isAuthRoute || isIndexRoute)) {
+      router.replace("/(app)/dashboard");
+      return;
+    }
+
+    if (!user && isIndexRoute) {
+      router.replace("/login");
+    }
+  }, [dispatch, isLoading, segments, user]);
+
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: C.background },
-        animation: "slide_from_right",
-      }}
-    >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signup" />
-      <Stack.Screen name="forgot-password" />
-      <Stack.Screen name="(app)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: C.background },
+          animation: "slide_from_right",
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 
@@ -64,13 +111,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </AuthProvider>
+          <Provider store={store}>
+            <AuthProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </AuthProvider>
+          </Provider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

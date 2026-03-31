@@ -11,17 +11,14 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { signup as signupApi } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useAuth } from "@/context/AuthContext";
 import Colors from "@/constants/colors";
+import { registerUser } from "@/lib/registerUser";
 
 export default function SignupScreen() {
   const C = Colors.light;
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,8 +32,10 @@ export default function SignupScreen() {
     if (!email.trim()) errs.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email";
     if (!password) errs.password = "Password is required";
-    else if (password.length < 6) errs.password = "Password must be at least 6 characters";
-    if (password !== confirmPassword) errs.confirmPassword = "Passwords do not match";
+    else if (password.length < 6)
+      errs.password = "Password must be at least 6 characters";
+    if (password !== confirmPassword)
+      errs.confirmPassword = "Passwords do not match";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -45,11 +44,22 @@ export default function SignupScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const data = await signupApi({ name: name.trim(), email: email.trim(), password });
-      await login(data.user, data.token);
+      const result = await registerUser({
+        displayName: name,
+        email,
+        password,
+        confirmPassword,
+      });
+
+      if (!result.success) {
+        Alert.alert("Signup Failed", result.error);
+        return;
+      }
+
       router.replace("/(app)/dashboard");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
+      const msg =
+        err instanceof Error ? err.message : "Signup failed. Please try again.";
       Alert.alert("Signup Failed", msg);
     } finally {
       setLoading(false);
@@ -78,7 +88,9 @@ export default function SignupScreen() {
           </Pressable>
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: C.text }]}>Create account</Text>
+            <Text style={[styles.title, { color: C.text }]}>
+              Create account
+            </Text>
             <Text style={[styles.subtitle, { color: C.textSecondary }]}>
               Join your team today
             </Text>
@@ -125,7 +137,11 @@ export default function SignupScreen() {
               isPassword
             />
 
-            <Button label="Create Account" onPress={handleSignup} loading={loading} />
+            <Button
+              label="Create Account"
+              onPress={handleSignup}
+              loading={loading}
+            />
           </View>
 
           <View style={styles.footer}>
@@ -133,7 +149,9 @@ export default function SignupScreen() {
               Already have an account?{" "}
             </Text>
             <Pressable onPress={() => router.push("/login")}>
-              <Text style={[styles.footerLink, { color: C.primary }]}>Sign in</Text>
+              <Text style={[styles.footerLink, { color: C.primary }]}>
+                Sign in
+              </Text>
             </Pressable>
           </View>
         </ScrollView>

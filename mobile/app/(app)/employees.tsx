@@ -17,11 +17,11 @@ import {
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  useListEmployees,
   deleteEmployee,
   getListEmployeesQueryKey,
   getGetDashboardStatsQueryKey,
-} from "@workspace/api-client-react";
+  useListEmployees,
+} from "@/lib/employees";
 import { useQueryClient } from "@tanstack/react-query";
 import { EmployeeCard } from "@/components/EmployeeCard";
 import Colors from "@/constants/colors";
@@ -40,45 +40,45 @@ export default function EmployeesScreen() {
     (e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
       e.email.toLowerCase().includes(search.toLowerCase()) ||
-      e.role.toLowerCase().includes(search.toLowerCase())
+      e.role.toLowerCase().includes(search.toLowerCase()),
   );
 
   const topInset = Platform.OS === "web" ? 67 : insets.top;
 
-  const handleDelete = (id: number, name: string) => {
-    Alert.alert(
-      "Remove Employee",
-      `Are you sure you want to remove ${name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteEmployee(id);
-              queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-              queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
-              if (Platform.OS !== "web") {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              }
-            } catch {
-              Alert.alert("Error", "Failed to remove employee. Please try again.");
+  const handleDelete = (id: string, name: string) => {
+    Alert.alert("Remove Employee", `Are you sure you want to remove ${name}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteEmployee(id);
+            queryClient.invalidateQueries({
+              queryKey: getListEmployeesQueryKey(),
+            });
+            queryClient.invalidateQueries({
+              queryKey: getGetDashboardStatsQueryKey(),
+            });
+            if (Platform.OS !== "web") {
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
             }
-          },
+          } catch {
+            Alert.alert(
+              "Error",
+              "Failed to remove employee. Please try again.",
+            );
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: C.background }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topInset + 16 },
-        ]}
-      >
+      <View style={[styles.header, { paddingTop: topInset + 16 }]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: C.text }]}>Employees</Text>
           <Pressable
@@ -100,7 +100,10 @@ export default function EmployeesScreen() {
         >
           <Feather name="search" size={16} color={C.textMuted} />
           <TextInput
-            style={[styles.searchInput, { color: C.text, fontFamily: "Inter_400Regular" }]}
+            style={[
+              styles.searchInput,
+              { color: C.text, fontFamily: "Inter_400Regular" },
+            ]}
             placeholder="Search by name, email, or role..."
             placeholderTextColor={C.textMuted}
             value={search}
@@ -138,7 +141,9 @@ export default function EmployeesScreen() {
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <View style={[styles.emptyIcon, { backgroundColor: C.tintLight }]}>
+              <View
+                style={[styles.emptyIcon, { backgroundColor: C.tintLight }]}
+              >
                 <Feather name="users" size={32} color={C.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: C.text }]}>
@@ -154,7 +159,12 @@ export default function EmployeesScreen() {
           renderItem={({ item }) => (
             <EmployeeCard
               employee={item}
-              onPress={() => router.push({ pathname: "/(app)/employee/[id]", params: { id: item.id.toString() } })}
+              onPress={() =>
+                router.push({
+                  pathname: "/(app)/employee/[id]",
+                  params: { id: item.id.toString() },
+                })
+              }
               onDelete={() => handleDelete(item.id, item.name)}
             />
           )}

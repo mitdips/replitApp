@@ -14,9 +14,12 @@
       "backgroundColor": "#4F46E5"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mitdips.mobile"
     },
-    "android": {},
+    "android": {
+      "package": "com.mitdips.mobile"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -32,7 +35,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }
